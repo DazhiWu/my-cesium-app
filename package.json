@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "dev:pipeline": "vite --config vite.config.pipeline.js --host 0.0.0.0",
+    "dev:camera": "vite --config vite.config.camera.js --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview"
   },

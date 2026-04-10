@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>AR管线巡检系统</title>
+    <title>AR 摄像头与 3D 建筑集成</title>
     <style>
       * {
         margin: 0;
@@ -17,981 +17,135 @@
         height: 100%;
         overflow: hidden;
         touch-action: none;
+        background-color: #000;
       }
       
-      .button-container {
-        position: absolute;
-        top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 1000;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-      
-      .control-panel {
-        position: absolute;
-        top: 80px;
-        right: 10px;
-        z-index: 1000;
-        background-color: rgba(255, 255, 255, 0.95);
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        min-width: 200px;
-      }
-      .nav-button {
-        padding: 10px 20px;
-        background-color: rgba(255, 255, 255, 0.9);
-        border: 2px solid #007bff;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: bold;
-        color: #007bff;
-        transition: all 0.3s ease;
-      }
-      .nav-button:hover {
-        background-color: #007bff;
-        color: white;
-      }
-      .nav-button:active {
-        transform: scale(0.95);
-      }
-      .nav-button.active {
-        background-color: #007bff;
-        color: white;
-      }
-      .control-panel {
-        position: absolute;
-        top: 80px;
-        right: 10px;
-        z-index: 1000;
-        background-color: rgba(255, 255, 255, 0.95);
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        min-width: 200px;
-      }
-      .control-label {
-        display: block;
-        font-size: 14px;
-        font-weight: bold;
-        color: #333;
-        margin-bottom: 8px;
-      }
-      .slider-container {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .opacity-slider {
-        flex: 1;
-        height: 6px;
-        -webkit-appearance: none;
-        appearance: none;
-        background: linear-gradient(to right, #e0e0e0, #007bff);
-        border-radius: 3px;
-        outline: none;
-        cursor: pointer;
-      }
-      .opacity-slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 18px;
-        height: 18px;
-        background: #007bff;
-        border-radius: 50%;
-        cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        transition: transform 0.2s ease;
-      }
-      .opacity-slider::-webkit-slider-thumb:hover {
-        transform: scale(1.2);
-      }
-      .opacity-slider::-moz-range-thumb {
-        width: 18px;
-        height: 18px;
-        background: #007bff;
-        border-radius: 50%;
-        cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        border: none;
-      }
-      .opacity-value {
-        min-width: 50px;
-        text-align: right;
-        font-size: 14px;
-        font-weight: bold;
-        color: #007bff;
-        font-family: 'Courier New', monospace;
-      }
-      
-      /* AR模式专用样式 */
-      #ar-container {
+      #video-container {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        overflow: hidden;
-      }
-      
-      #video-background {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
         z-index: 1;
-        display: none;
         background-color: #000;
       }
       
-      #app {
-        position: absolute;
+      #video-background {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      
+      #cesium-wrapper {
+        position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
         z-index: 2;
-      }
-      
-      /* AR模式下的透明设置 */
-      .ar-mode #ar-container {
-        background: transparent;
-      }
-      
-      .ar-mode #video-background {
-        display: block;
-      }
-      
-      .ar-mode #app {
-        background: transparent !important;
         pointer-events: auto;
-      }
-      
-      .ar-mode #app .cesium-viewer {
         background: transparent !important;
       }
       
-      .ar-mode #app .cesium-widget {
+      #cesium-container {
+        width: 100%;
+        height: 100%;
+      }
+      
+      #cesium-wrapper * {
+        background: transparent !important;
+        background-color: transparent !important;
+      }
+      
+      #cesium-wrapper .cesium-viewer,
+      #cesium-wrapper .cesium-widget,
+      #cesium-wrapper canvas,
+      #cesium-wrapper .cesium-container,
+      #cesium-wrapper .cesium-viewer-container,
+      #cesium-wrapper .cesium-viewer-cesiumWidgetContainer,
+      #cesium-wrapper .cesium-viewer-bottom,
+      #cesium-wrapper .cesium-viewer-animationContainer,
+      #cesium-wrapper .cesium-viewer-timelineContainer,
+      #cesium-wrapper .cesium-viewer-fullscreenContainer,
+      #cesium-wrapper .cesium-viewer-geocoderContainer,
+      #cesium-wrapper .cesium-viewer-homeButton,
+      #cesium-wrapper .cesium-viewer-sceneModePicker,
+      #cesium-wrapper .cesium-viewer-baseLayerPicker,
+      #cesium-wrapper .cesium-viewer-navigationHelpButton,
+      #cesium-wrapper .cesium-viewer-vrButton,
+      #cesium-wrapper .cesium-scene {
+        background: transparent !important;
+        background-color: transparent !important;
+      }
+      
+      #cesium-wrapper canvas {
+        background-color: transparent !important;
         background: transparent !important;
       }
       
-      .ar-mode #app .cesium-widget canvas {
-        background: transparent !important;
-      }
-      
-      .ar-mode #app canvas {
-        background: transparent !important;
-      }
-      
-      .ar-mode #app .cesium-scene {
-        background: transparent !important;
-      }
-      
-      /* 确保Cesium的球体和天空盒完全透明 */
-      .ar-mode .cesium-viewer-cesiumWidgetContainer {
-        background: transparent !important;
-      }
-      
-      .ar-mode .cesium-viewer-bottom {
-        background: transparent !important;
-      }
-      
-      /* GPS信息面板样式 */
-      #gps-info-panel {
-        position: absolute;
-        top: 80px;
-        left: 10px;
-        z-index: 1001;
-        background-color: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 12px 16px;
-        border-radius: 8px;
-        font-size: 12px;
-        min-width: 180px;
-        display: none;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-      }
-      
-      .ar-mode #gps-info-panel {
-        display: block;
-      }
-      
-      .gps-info-title {
-        font-weight: bold;
-        font-size: 13px;
-        margin-bottom: 8px;
-        padding-bottom: 6px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      }
-      
-      .gps-info-content {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      
-      .gps-info-row {
-        display: flex;
-        justify-content: space-between;
-      }
-      
-      .gps-info-label {
-        color: #aaa;
-      }
-      
-      .gps-info-value {
-        font-family: 'Courier New', monospace;
-        font-weight: bold;
-      }
-      
-      .ar-mode .cesium-viewer-bottom,
-      .ar-mode .cesium-viewer-animationContainer,
-      .ar-mode .cesium-viewer-timelineContainer,
-      .ar-mode .cesium-viewer-fullscreenContainer,
-      .ar-mode .cesium-viewer-geocoderContainer,
-      .ar-mode .cesium-viewer-homeButton,
-      .ar-mode .cesium-viewer-sceneModePicker,
-      .ar-mode .cesium-viewer-baseLayerPicker,
-      .ar-mode .cesium-viewer-navigationHelpButton,
-      .ar-mode .cesium-viewer-vrButton {
-        display: none !important;
-      }
-      
-      .ar-button-container {
-        position: absolute;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 1001;
-        display: flex;
-        gap: 10px;
-      }
-      
-      .ar-button {
-        padding: 12px 24px;
-        background-color: rgba(40, 167, 69, 0.9);
-        border: 2px solid #28a745;
-        border-radius: 25px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: bold;
-        color: white;
-        transition: all 0.3s ease;
-      }
-      
-      .ar-button:hover {
-        background-color: #218838;
-        border-color: #1e7e34;
-      }
-      
-      .ar-button.exit {
-        background-color: rgba(220, 53, 69, 0.9);
-        border-color: #dc3545;
-      }
-      
-      .ar-button.exit:hover {
-        background-color: #c82333;
-        border-color: #bd2130;
-      }
-      
-      .ar-button.calibrate {
-        background-color: rgba(255, 193, 7, 0.9);
-        border-color: #ffc107;
-        color: #212529;
-      }
-      
-      .ar-button.calibrate:hover {
-        background-color: #e0a800;
-        border-color: #d39e00;
-      }
-      
-      /* 校准界面 */
-      #calibration-panel {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 1002;
-        background-color: rgba(255, 255, 255, 0.98);
-        padding: 25px;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        min-width: 280px;
-        display: none;
-      }
-      
-      .calibration-title {
-        font-size: 18px;
-        font-weight: bold;
-        color: #333;
-        margin-bottom: 20px;
-        text-align: center;
-      }
-      
-      .joystick-container {
-        position: relative;
-        width: 120px;
-        height: 120px;
-        margin: 0 auto 20px;
-        background-color: rgba(200, 200, 200, 0.5);
-        border-radius: 50%;
-        touch-action: none;
-      }
-      
-      .joystick-knob {
-        position: absolute;
-        width: 40px;
-        height: 40px;
-        background-color: #007bff;
-        border-radius: 50%;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-      }
-      
-      .height-control {
-        margin-bottom: 20px;
-      }
-      
-      .height-buttons {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-      }
-      
-      .height-btn {
-        width: 50px;
-        height: 50px;
-        font-size: 24px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-      
-      .height-btn.up {
-        background-color: #28a745;
-        color: white;
-      }
-      
-      .height-btn.down {
-        background-color: #dc3545;
-        color: white;
-      }
-      
-      .height-btn:active {
-        transform: scale(0.9);
-      }
-      
-      .height-display {
-        text-align: center;
-        margin-top: 10px;
-        font-size: 14px;
-        color: #666;
-      }
-      
-      .calibration-actions {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-      }
-      
-      .calibration-actions button {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: bold;
-        transition: all 0.2s;
-      }
-      
-      .calibration-actions .cancel-btn {
-        background-color: #6c757d;
-        color: white;
-      }
-      
-      .calibration-actions .done-btn {
-        background-color: #007bff;
-        color: white;
-      }
-      
-      /* 经纬度调整 */
-      .location-control {
-        margin-bottom: 20px;
-        padding: 15px;
-        background-color: rgba(240, 240, 240, 0.5);
-        border-radius: 8px;
-      }
-      
-      .location-display {
-        text-align: center;
-        margin-bottom: 15px;
-        font-size: 13px;
-        color: #333;
-        font-family: 'Courier New', monospace;
-        background-color: white;
-        padding: 10px;
-        border-radius: 6px;
-        border: 1px solid #ddd;
-      }
-      
-      .coord-input-group {
-        margin-bottom: 12px;
-      }
-      
-      .coord-label {
-        display: block;
-        font-size: 12px;
-        font-weight: bold;
-        color: #555;
-        margin-bottom: 5px;
-      }
-      
-      .coord-input-container {
-        display: flex;
-        gap: 5px;
-        align-items: center;
-      }
-      
-      .coord-input {
-        flex: 1;
-        padding: 8px;
-        border: 2px solid #ddd;
-        border-radius: 6px;
-        font-size: 14px;
-        font-family: 'Courier New', monospace;
-        text-align: center;
-        transition: border-color 0.2s;
-      }
-      
-      .coord-input:focus {
-        outline: none;
-        border-color: #007bff;
-      }
-      
-      .coord-input.error {
-        border-color: #dc3545;
-      }
-      
-      .coord-btn {
-        width: 36px;
-        height: 36px;
-        font-size: 18px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        background-color: #007bff;
-        color: white;
-        transition: all 0.2s;
-      }
-      
-      .coord-btn:hover {
-        background-color: #0056b3;
-      }
-      
-      .coord-btn:active {
-        transform: scale(0.95);
-      }
-      
-      .coord-btn-small {
-        width: 28px;
-        height: 28px;
-        font-size: 14px;
-      }
-      
-      .location-actions {
-        display: flex;
-        gap: 8px;
-        justify-content: center;
-        margin-top: 12px;
-      }
-      
-      .location-actions button {
-        padding: 8px 16px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 12px;
-        font-weight: bold;
-        transition: all 0.2s;
-      }
-      
-      .location-actions .btn-cancel-loc {
-        background-color: #6c757d;
-        color: white;
-      }
-      
-      .location-actions .btn-apply-loc {
-        background-color: #28a745;
-        color: white;
-      }
-      
-      .location-actions .btn-pick-map {
-        background-color: #ffc107;
-        color: #212529;
-      }
-      
-      .tab-buttons {
-        display: flex;
-        gap: 5px;
-        margin-bottom: 15px;
-      }
-      
-      .tab-btn {
-        flex: 1;
-        padding: 8px 12px;
-        border: 2px solid #ddd;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 12px;
-        font-weight: bold;
-        background-color: white;
-        color: #666;
-        transition: all 0.2s;
-      }
-      
-      .tab-btn:hover {
-        border-color: #007bff;
-        color: #007bff;
-      }
-      
-      .tab-btn.active {
-        background-color: #007bff;
-        border-color: #007bff;
-        color: white;
-      }
-      
-      .tab-content {
-        display: none;
-      }
-      
-      .tab-content.active {
-        display: block;
-      }
-      
-      /* 地图拾取器 */
-      #map-picker-modal {
+      #debug-panel {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.8);
-        z-index: 2000;
-        display: none;
-        flex-direction: column;
-      }
-      
-      #map-picker-modal.active {
-        display: flex;
-      }
-      
-      .map-picker-header {
-        padding: 15px 20px;
-        background-color: #333;
-        color: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      
-      .map-picker-title {
-        font-size: 16px;
-        font-weight: bold;
-      }
-      
-      .map-picker-close {
-        background: none;
-        border: 2px solid white;
-        color: white;
-        padding: 8px 16px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: bold;
-      }
-      
-      .map-picker-container {
-        flex: 1;
-        position: relative;
-      }
-      
-      #map-picker-cesium {
-        width: 100%;
-        height: 100%;
-      }
-      
-      .map-picker-info {
-        position: absolute;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 15px 25px;
-        border-radius: 8px;
-        text-align: center;
-        font-size: 14px;
-      }
-      
-      .map-picker-select {
-        position: absolute;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: #28a745;
-        color: white;
-        padding: 12px 30px;
-        border: none;
-        border-radius: 25px;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: bold;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-      }
-      
-      /* 状态提示 */
-      #status-bar {
-        position: absolute;
-        top: 80px;
+        top: 10px;
         left: 10px;
-        z-index: 1000;
-        background-color: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 10px 15px;
-        border-radius: 6px;
-        font-size: 12px;
-        max-width: 250px;
-        display: none;
-      }
-      
-      #status-bar.error {
-        background-color: rgba(220, 53, 69, 0.9);
-      }
-      
-      #status-bar.warning {
-        background-color: rgba(255, 193, 7, 0.9);
-        color: #212529;
-      }
-      
-      #status-bar.success {
-        background-color: rgba(40, 167, 69, 0.9);
-      }
-      
-      /* 视频控制面板 */
-      #video-control-panel {
-        position: absolute;
-        top: 80px;
-        right: 10px;
-        z-index: 1001;
-        background-color: rgba(255, 255, 255, 0.95);
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        min-width: 220px;
-        display: none;
-      }
-      
-      .ar-mode #video-control-panel {
-        display: block;
-      }
-      
-      .video-control-title {
-        font-size: 14px;
-        font-weight: bold;
-        color: #333;
-        margin-bottom: 12px;
-        text-align: center;
-      }
-      
-      .video-source-select {
-        margin-bottom: 12px;
-      }
-      
-      .video-source-label {
-        display: block;
-        font-size: 12px;
-        font-weight: bold;
-        color: #555;
-        margin-bottom: 6px;
-      }
-      
-      .video-source-buttons {
-        display: flex;
-        gap: 8px;
-      }
-      
-      .video-source-btn {
-        flex: 1;
-        padding: 8px 12px;
-        border: 2px solid #ddd;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 12px;
-        font-weight: bold;
-        background-color: white;
-        color: #666;
-        transition: all 0.2s;
-      }
-      
-      .video-source-btn:hover {
-        border-color: #007bff;
-        color: #007bff;
-      }
-      
-      .video-source-btn.active {
-        background-color: #007bff;
-        border-color: #007bff;
-        color: white;
-      }
-      
-      .file-upload-container {
-        margin-bottom: 12px;
-      }
-      
-      .file-upload-label {
-        display: block;
+        z-index: 9999;
+        background-color: rgba(0, 0, 0, 0.9);
+        color: #0f0;
         padding: 10px;
-        background-color: #007bff;
-        color: white;
-        text-align: center;
-        border-radius: 6px;
-        cursor: pointer;
+        border-radius: 5px;
+        font-family: 'Courier New', monospace;
         font-size: 12px;
-        font-weight: bold;
-        transition: background-color 0.2s;
-      }
-      
-      .file-upload-label:hover {
-        background-color: #0056b3;
-      }
-      
-      #video-file-input {
-        display: none;
-      }
-      
-      .video-file-info {
-        margin-top: 8px;
-        font-size: 11px;
-        color: #666;
-        text-align: center;
-        word-break: break-all;
-      }
-      
-      .video-opacity-control {
-        margin-bottom: 8px;
-      }
-      
-      .video-playback-control {
-        display: flex;
-        gap: 8px;
-        margin-top: 12px;
-      }
-      
-      .playback-btn {
-        flex: 1;
-        padding: 8px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 12px;
-        font-weight: bold;
-        transition: background-color 0.2s;
-      }
-      
-      .playback-btn.play {
-        background-color: #28a745;
-        color: white;
-      }
-      
-      .playback-btn.pause {
-        background-color: #ffc107;
-        color: #212529;
-      }
-      
-      .playback-btn:hover {
-        opacity: 0.8;
-      }
-      
-      /* AR按钮图标样式 */
-      .ar-icon {
-        margin-right: 8px;
-        font-size: 20px;
-        display: inline-block;
-        animation: pulse 2s infinite;
-      }
-      
-      @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-      }
-      
-      /* AR引导弹窗样式 */
-      #ar-guide-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.7);
-        z-index: 3000;
-        display: none;
-        justify-content: center;
-        align-items: center;
-        padding: 20px;
-      }
-      
-      #ar-guide-modal.active {
-        display: flex;
-      }
-      
-      .ar-guide-content {
-        background-color: white;
-        border-radius: 16px;
-        max-width: 500px;
-        width: 100%;
-        max-height: 90vh;
+        max-width: 300px;
+        max-height: 400px;
         overflow-y: auto;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
       }
       
-      .ar-guide-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 20px 24px;
-        border-bottom: 1px solid #eee;
+      #debug-panel .log-entry {
+        margin-bottom: 5px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #333;
       }
       
-      .ar-guide-header h2 {
-        margin: 0;
-        font-size: 20px;
-        color: #333;
+      #debug-panel .log-entry.error {
+        color: #f00;
       }
       
-      .ar-guide-close {
-        background: none;
-        border: none;
-        font-size: 28px;
-        color: #999;
-        cursor: pointer;
-        padding: 0;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        transition: background-color 0.2s;
+      #debug-panel .log-entry.success {
+        color: #0f0;
       }
       
-      .ar-guide-close:hover {
-        background-color: #f0f0f0;
+      #debug-panel .log-entry.info {
+        color: #0ff;
       }
       
-      .ar-guide-body {
-        padding: 24px;
-      }
-      
-      .guide-step {
-        display: flex;
-        gap: 16px;
-        margin-bottom: 24px;
-      }
-      
-      .guide-step:last-child {
-        margin-bottom: 0;
-      }
-      
-      .guide-step-number {
-        width: 36px;
-        height: 36px;
-        background: linear-gradient(135deg, #007bff, #0056b3);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 16px;
-        flex-shrink: 0;
-      }
-      
-      .guide-step-text h3 {
-        margin: 0 0 6px 0;
-        font-size: 16px;
-        color: #333;
-      }
-      
-      .guide-step-text p {
-        margin: 0;
-        font-size: 14px;
-        color: #666;
-        line-height: 1.5;
-      }
-      
-      .ar-guide-footer {
-        padding: 16px 24px 24px;
-      }
-      
-      .ar-guide-done {
-        width: 100%;
-        padding: 14px;
-        background: linear-gradient(135deg, #007bff, #0056b3);
-        color: white;
-        border: none;
-        border-radius: 10px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
-      }
-      
-      .ar-guide-done:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
-      }
-      
-      .ar-guide-done:active {
-        transform: translateY(0);
-      }
-      
-      /* 加载状态指示器 */
-      #loading-indicator {
+      #loading-overlay {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(0, 0, 0, 0.8);
-        z-index: 4000;
-        display: none;
+        background-color: rgba(0, 0, 0, 0.95);
+        z-index: 9998;
+        display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        color: white;
+        font-family: system-ui, -apple-system, sans-serif;
       }
       
-      #loading-indicator.active {
-        display: flex;
+      #loading-overlay.hidden {
+        display: none;
       }
       
       .loading-spinner {
-        width: 50px;
-        height: 50px;
+        width: 60px;
+        height: 60px;
         border: 4px solid rgba(255, 255, 255, 0.3);
         border-top-color: #007bff;
         border-radius: 50%;
         animation: spin 1s linear infinite;
+        margin-bottom: 20px;
       }
       
       @keyframes spin {
@@ -999,243 +153,690 @@
       }
       
       .loading-text {
-        margin-top: 20px;
-        color: white;
-        font-size: 16px;
+        font-size: 18px;
+        margin-bottom: 10px;
       }
       
-
+      .loading-subtext {
+        font-size: 14px;
+        color: #aaa;
+      }
       
-      /* 移动端优化 */
+      #error-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.95);
+        z-index: 10000;
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-family: system-ui, -apple-system, sans-serif;
+        padding: 20px;
+      }
+      
+      #error-modal.active {
+        display: flex;
+      }
+      
+      .error-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+      }
+      
+      .error-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #ff6b6b;
+      }
+      
+      .error-message {
+        font-size: 16px;
+        text-align: center;
+        max-width: 400px;
+        line-height: 1.6;
+        color: #ddd;
+        margin-bottom: 25px;
+      }
+      
+      .retry-button {
+        padding: 12px 36px;
+        font-size: 16px;
+        font-weight: bold;
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      
+      .retry-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+      }
+      
+      .retry-button:active {
+        transform: translateY(0);
+      }
+      
+      #status-panel {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
+        background-color: rgba(0, 0, 0, 0.75);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-family: system-ui, -apple-system, sans-serif;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+      }
+      
+      #status-panel.visible {
+        opacity: 1;
+      }
+      
+      #status-panel.success {
+        background-color: rgba(40, 167, 69, 0.9);
+      }
+      
+      #status-panel.error {
+        background-color: rgba(220, 53, 69, 0.9);
+      }
+      
+      #status-panel.warning {
+        background-color: rgba(255, 193, 7, 0.9);
+        color: #212529;
+      }
+      
+      #controls-panel {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .control-btn {
+        padding: 10px 16px;
+        background-color: rgba(255, 255, 255, 0.9);
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        color: #333;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        transition: all 0.2s ease;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      
+      .control-btn:hover {
+        background-color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+      }
+      
+      .control-btn:active {
+        transform: translateY(0);
+      }
+      
+      .control-btn.primary {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+      }
+      
+      .control-btn.primary:hover {
+        background: linear-gradient(135deg, #0056b3, #004085);
+      }
+      
+      .control-btn.danger {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+      }
+      
       @media (max-width: 768px) {
-        .ar-button {
-          padding: 14px 28px;
-          font-size: 16px;
+        #controls-panel {
+          top: 10px;
+          right: 10px;
         }
         
-        .ar-guide-content {
-          border-radius: 12px;
+        .control-btn {
+          padding: 8px 12px;
+          font-size: 12px;
         }
         
-        .ar-guide-header,
-        .ar-guide-body,
-        .ar-guide-footer {
-          padding: 16px;
+        #status-panel {
+          bottom: 10px;
+          left: 10px;
+          right: 10px;
+          transform: none;
+          text-align: center;
         }
         
-        .guide-step {
-          margin-bottom: 20px;
+        #debug-panel {
+          max-width: 200px;
+          font-size: 10px;
         }
       }
     </style>
   </head>
   <body>
-    <div id="ar-container">
+    <div id="video-container">
       <video id="video-background" autoplay playsinline muted></video>
-      <div id="app"></div>
     </div>
     
-    <div class="button-container">
-      <button class="nav-button" id="btn-dongtou">跳转到洞头区管网</button>
-      <button class="nav-button" id="btn-wutian">跳转到梧田街道管网</button>
+    <div id="cesium-wrapper">
+      <div id="cesium-container"></div>
     </div>
     
-    <div class="control-panel">
-      <label class="control-label">地表图层透明度</label>
-      <div class="slider-container">
-        <input type="range" id="opacity-slider" class="opacity-slider" min="0" max="1" step="0.01" value="1">
-        <span class="opacity-value" id="opacity-value">1.00</span>
-      </div>
-    </div>
+    <div id="debug-panel"></div>
     
-    <div class="ar-button-container" id="ar-controls">
-      <button class="ar-button" id="btn-enter-ar">
-        <span class="ar-icon">📷</span>
-        手机AR模式
-      </button>
-    </div>
-    
-    <!-- AR使用引导弹窗 -->
-    <div id="ar-guide-modal">
-      <div class="ar-guide-content">
-        <div class="ar-guide-header">
-          <h2>📱 AR模式使用指南</h2>
-          <button class="ar-guide-close" id="btn-close-guide">&times;</button>
-        </div>
-        <div class="ar-guide-body">
-          <div class="guide-step">
-            <div class="guide-step-number">1</div>
-            <div class="guide-step-text">
-              <h3>🔐 使用HTTPS访问</h3>
-              <p style="color: #dc3545; font-weight: bold;">重要：摄像头和定位功能需要HTTPS连接！</p>
-              <p>请使用ngrok等工具提供HTTPS隧道，或在本地网络中配置HTTPS</p>
-            </div>
-          </div>
-          <div class="guide-step">
-            <div class="guide-step-number">2</div>
-            <div class="guide-step-text">
-              <h3>授权访问</h3>
-              <p>首次使用时，请允许浏览器访问您的摄像头和位置信息</p>
-            </div>
-          </div>
-          <div class="guide-step">
-            <div class="guide-step-number">3</div>
-            <div class="guide-step-text">
-              <h3>位置校准</h3>
-              <p>点击「手动校准」按钮，调整您的位置和视角以匹配真实场景</p>
-            </div>
-          </div>
-          <div class="guide-step">
-            <div class="guide-step-number">4</div>
-            <div class="guide-step-text">
-              <h3>移动探索</h3>
-              <p>转动手机，通过陀螺仪控制视角，探索周围的管线数据</p>
-            </div>
-          </div>
-        </div>
-        <div class="ar-guide-footer">
-          <button class="ar-guide-done" id="btn-guide-done">我知道了</button>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 加载状态指示器 -->
-    <div id="loading-indicator">
+    <div id="loading-overlay">
       <div class="loading-spinner"></div>
-      <div class="loading-text" id="loading-text">正在加载...</div>
+      <div class="loading-text" id="loading-text">正在初始化...</div>
+      <div class="loading-subtext" id="loading-subtext">请稍候</div>
     </div>
     
-
+    <div id="error-modal">
+      <div class="error-icon">⚠️</div>
+      <div class="error-title" id="error-title">出错了</div>
+      <div class="error-message" id="error-message">发生未知错误</div>
+      <button class="retry-button" id="retry-button">重试</button>
+    </div>
     
-    <div id="calibration-panel">
-      <div class="calibration-title">手动校准</div>
+    <div id="status-panel"></div>
+    
+    <div id="controls-panel">
+      <button class="control-btn danger" id="btn-toggle-cesium">禁用 Cesium</button>
+      <button class="control-btn primary" id="btn-reload-cesium">重新加载建筑</button>
+      <button class="control-btn" id="btn-toggle-video">隐藏/显示摄像头</button>
+      <button class="control-btn" id="btn-toggle-debug">显示/隐藏调试</button>
+    </div>
+    
+    <script type="module">
+      import * as Cesium from 'cesium';
+      import "cesium/Build/Cesium/Widgets/widgets.css";
       
-      <div class="tab-buttons">
-        <button class="tab-btn active" data-tab="tab-orientation">方向/高度</button>
-        <button class="tab-btn" data-tab="tab-location">位置调整</button>
-      </div>
+      Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0MjNiNjNkYS0yODkxLTRiYTQtOTIyZC03N2E2ZThlNjQ4ZWMiLCJpZCI6MTU5MDY2LCJpYXQiOjE3NTgwODg1NDl9.LGDvn1FV-RgAXvDpYd00ryW2MW05tZosbI-ax4d7yds';
       
-      <div class="tab-content active" id="tab-orientation">
-        <div class="control-label" style="text-align: center;">方向调整</div>
-        <div class="joystick-container" id="joystick">
-          <div class="joystick-knob" id="joystick-knob"></div>
-        </div>
+      let viewer = null;
+      let videoStream = null;
+      let isVideoVisible = true;
+      let debugVisible = true;
+      let cesiumEnabled = true;
+      let transparencyInterval = null;
+      
+      const DEFAULT_LOCATION = {
+        latitude: 27.968858,
+        longitude: 120.670331
+      };
+      
+      function log(message, type = 'info') {
+        console.log(`[${type.toUpperCase()}]`, message);
         
-        <div class="height-control">
-          <div class="control-label" style="text-align: center;">高度调整</div>
-          <div class="height-buttons">
-            <button class="height-btn up" id="btn-height-up">↑</button>
-            <button class="height-btn down" id="btn-height-down">↓</button>
-          </div>
-          <div class="height-display" id="height-display">高度: 1.7米</div>
-        </div>
-      </div>
+        const debugPanel = document.getElementById('debug-panel');
+        if (!debugPanel) return;
+        
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        const time = new Date().toLocaleTimeString();
+        entry.textContent = `[${time}] ${message}`;
+        debugPanel.appendChild(entry);
+        debugPanel.scrollTop = debugPanel.scrollHeight;
+      }
       
-      <div class="tab-content" id="tab-location">
-        <div class="location-control">
-          <div class="location-display" id="location-display">
-            纬度: --°N, 经度: --°E
-          </div>
+      function showStatus(message, type = 'info', duration = 3000) {
+        const panel = document.getElementById('status-panel');
+        panel.textContent = message;
+        panel.className = 'status-panel visible';
+        if (type !== 'info') {
+          panel.classList.add(type);
+        }
+        
+        setTimeout(() => {
+          panel.classList.remove('visible');
+        }, duration);
+      }
+      
+      function updateLoading(text, subtext = '') {
+        document.getElementById('loading-text').textContent = text;
+        document.getElementById('loading-subtext').textContent = subtext;
+        log(text, 'info');
+      }
+      
+      function hideLoading() {
+        document.getElementById('loading-overlay').classList.add('hidden');
+        log('加载完成', 'success');
+      }
+      
+      function showError(title, message) {
+        document.getElementById('error-title').textContent = title;
+        document.getElementById('error-message').textContent = message;
+        document.getElementById('error-modal').classList.add('active');
+        log(`${title}: ${message}`, 'error');
+      }
+      
+      function hideError() {
+        document.getElementById('error-modal').classList.remove('active');
+      }
+      
+      function forceTransparency() {
+        const cesiumWrapper = document.getElementById('cesium-wrapper');
+        if (!cesiumWrapper) return;
+        
+        const allElements = cesiumWrapper.querySelectorAll('*');
+        allElements.forEach(el => {
+          el.style.backgroundColor = 'transparent';
+          el.style.background = 'transparent';
+        });
+        
+        const canvases = cesiumWrapper.querySelectorAll('canvas');
+        canvases.forEach(canvas => {
+          canvas.style.backgroundColor = 'transparent';
+          canvas.style.background = 'transparent';
+        });
+      }
+      
+      function startTransparencyMonitor() {
+        if (transparencyInterval) {
+          clearInterval(transparencyInterval);
+        }
+        transparencyInterval = setInterval(forceTransparency, 100);
+        log('透明监控已启动', 'info');
+      }
+      
+      function stopTransparencyMonitor() {
+        if (transparencyInterval) {
+          clearInterval(transparencyInterval);
+          transparencyInterval = null;
+          log('透明监控已停止', 'info');
+        }
+      }
+      
+      async function startCamera() {
+        log('开始启动摄像头...', 'info');
+        const videoElement = document.getElementById('video-background');
+        if (!videoElement) {
+          throw new Error('找不到视频元素');
+        }
+        
+        log('检查视频元素存在', 'success');
+        
+        updateLoading('正在检查摄像头...', '请在弹出的对话框中允许访问');
+        
+        const isHttps = window.location.protocol === 'https:';
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1';
+        
+        log(`协议: ${window.location.protocol}, HTTPS: ${isHttps}, Localhost: ${isLocalhost}`, 'info');
+        
+        if (!isHttps && !isLocalhost) {
+          throw new Error('摄像头访问需要 HTTPS 连接或 localhost！\n请使用 HTTPS 协议访问，或在本地开发环境中使用。');
+        }
+        
+        if (!navigator.mediaDevices) {
+          throw new Error('navigator.mediaDevices 不存在，您的浏览器可能不支持摄像头 API');
+        }
+        
+        if (!navigator.mediaDevices.getUserMedia) {
+          throw new Error('getUserMedia 不存在，您的浏览器可能不支持摄像头 API');
+        }
+        
+        log('浏览器支持摄像头 API', 'success');
+        
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        log(`找到 ${devices.length} 个媒体设备`, 'info');
+        devices.forEach((device, index) => {
+          log(`设备 ${index + 1}: ${device.kind} - ${device.label || '未命名'}`, 'info');
+        });
+        
+        const constraints = {
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1920, max: 3840, min: 640 },
+            height: { ideal: 1080, max: 2160, min: 480 }
+          },
+          audio: false
+        };
+        
+        log('尝试获取视频流...', 'info');
+        
+        try {
+          videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+          log('成功获取视频流！', 'success');
+          log(`视频轨道数: ${videoStream.getVideoTracks().length}`, 'info');
+          log(`音频轨道数: ${videoStream.getAudioTracks().length}`, 'info');
+        } catch (error) {
+          log(`获取视频流失败: ${error.name} - ${error.message}`, 'error');
+          if (error.name === 'OverconstrainedError' || error.message.includes('environment')) {
+            log('后置摄像头不可用，尝试前置摄像头...', 'warning');
+            updateLoading('后置摄像头不可用，尝试前置摄像头...');
+            constraints.video.facingMode = 'user';
+            videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+            log('成功获取前置摄像头视频流！', 'success');
+          } else {
+            throw error;
+          }
+        }
+        
+        updateLoading('正在连接视频流...');
+        
+        log('将视频流绑定到视频元素...', 'info');
+        videoElement.srcObject = videoStream;
+        
+        log('等待视频元数据加载...', 'info');
+        await new Promise((resolve, reject) => {
+          videoElement.onloadedmetadata = () => {
+            log('视频元数据加载完成', 'success');
+            log(`视频尺寸: ${videoElement.videoWidth}x${videoElement.videoHeight}`, 'info');
+            resolve();
+          };
+          videoElement.onerror = () => reject(new Error('视频元素加载失败'));
           
-          <div class="coord-input-group">
-            <label class="coord-label">纬度</label>
-            <div class="coord-input-container">
-              <button class="coord-btn coord-btn-small" id="btn-lat-down">−</button>
-              <input type="number" class="coord-input" id="input-lat" step="0.0001" placeholder="-90 至 90">
-              <button class="coord-btn coord-btn-small" id="btn-lat-up">+</button>
-            </div>
-          </div>
+          setTimeout(() => reject(new Error('视频加载超时')), 10000);
+        });
+        
+        log('尝试播放视频...', 'info');
+        try {
+          await videoElement.play();
+          log('视频播放成功！', 'success');
+        } catch (playError) {
+          log('自动播放被阻止，将在用户交互后继续', 'warning');
+        }
+        
+        log('摄像头启动成功', 'success');
+      }
+      
+      function stopCamera() {
+        log('停止摄像头...', 'info');
+        const videoElement = document.getElementById('video-background');
+        if (videoElement) {
+          videoElement.pause();
+          videoElement.srcObject = null;
+        }
+        
+        if (videoStream) {
+          videoStream.getTracks().forEach(track => track.stop());
+          videoStream = null;
+        }
+        log('摄像头已停止', 'info');
+      }
+      
+      async function initCesium() {
+        if (!cesiumEnabled) {
+          log('Cesium 已禁用，跳过初始化', 'warning');
+          return;
+        }
+        
+        log('正在初始化 Cesium...', 'info');
+        updateLoading('正在初始化 3D 场景...', '加载 Cesium 引擎');
+        
+        viewer = new Cesium.Viewer('cesium-container', {
+          animation: false,
+          timeline: false,
+          baseLayerPicker: false,
+          geocoder: false,
+          homeButton: false,
+          sceneModePicker: false,
+          navigationHelpButton: false,
+          fullscreenButton: false,
+          vrButton: false,
+          infoBox: false,
+          selectionIndicator: false,
+          contextOptions: {
+            webgl: {
+              alpha: true,
+              antialias: true,
+              premultipliedAlpha: false
+            }
+          }
+        });
+        
+        log('Cesium Viewer 创建成功', 'success');
+        
+        log('设置透明背景...', 'info');
+        viewer.scene.backgroundColor = Cesium.Color.TRANSPARENT;
+        
+        const canvas = viewer.scene.canvas;
+        canvas.style.background = 'transparent';
+        canvas.style.backgroundColor = 'transparent';
+        
+        log('隐藏地球和背景...', 'info');
+        viewer.scene.globe.show = false;
+        viewer.scene.skyAtmosphere.show = false;
+        viewer.scene.skyBox.show = false;
+        viewer.scene.sun.show = false;
+        viewer.scene.moon.show = false;
+        
+        log('移除所有影像图层...', 'info');
+        viewer.imageryLayers.removeAll();
+        
+        log('设置相机位置...', 'info');
+        viewer.camera.setView({
+          destination: Cesium.Cartesian3.fromDegrees(
+            DEFAULT_LOCATION.longitude,
+            DEFAULT_LOCATION.latitude,
+            500
+          ),
+          orientation: {
+            heading: 0,
+            pitch: Cesium.Math.toRadians(-45),
+            roll: 0
+          }
+        });
+        
+        log('Cesium 初始化完成', 'success');
+        startTransparencyMonitor();
+      }
+      
+      async function loadBuildings() {
+        if (!cesiumEnabled) {
+          log('Cesium 已禁用，跳过加载建筑', 'warning');
+          return;
+        }
+        
+        updateLoading('正在加载 3D 建筑...', '这可能需要几秒钟');
+        
+        try {
+          log('创建 OSM 建筑...', 'info');
+          const osmBuildings = await Cesium.createOsmBuildingsAsync();
           
-          <div class="coord-input-group">
-            <label class="coord-label">经度</label>
-            <div class="coord-input-container">
-              <button class="coord-btn coord-btn-small" id="btn-lon-down">−</button>
-              <input type="number" class="coord-input" id="input-lon" step="0.0001" placeholder="-180 至 180">
-              <button class="coord-btn coord-btn-small" id="btn-lon-up">+</button>
-            </div>
-          </div>
+          log('设置建筑样式...', 'info');
+          osmBuildings.style = new Cesium.Cesium3DTileStyle({
+            color: {
+              conditions: [
+                ['${feature["building:class"]} === "residential"', 'color("rgba(100, 150, 255, 0.7)")'],
+                ['${feature["building:class"]} === "commercial"', 'color("rgba(255, 200, 100, 0.7)")'],
+                ['${feature["building:class"]} === "industrial"', 'color("rgba(150, 150, 150, 0.7)")'],
+                ['true', 'color("rgba(255, 255, 255, 0.6)")']
+              ]
+            }
+          });
           
-          <div class="location-actions">
-            <button class="btn-pick-map" id="btn-pick-map">地图拾取</button>
-            <button class="btn-cancel-loc" id="btn-cancel-loc">重置</button>
-            <button class="btn-apply-loc" id="btn-apply-loc">应用</button>
-          </div>
-        </div>
-      </div>
+          log('添加建筑到场景...', 'info');
+          viewer.scene.primitives.add(osmBuildings);
+          
+          log('3D 建筑加载成功', 'success');
+          showStatus('3D 建筑加载成功！', 'success');
+          
+          return osmBuildings;
+        } catch (error) {
+          log(`OSM Buildings 加载失败: ${error.message}`, 'error');
+          showStatus('建筑数据加载失败，将显示基础场景', 'warning');
+          return null;
+        }
+      }
       
-      <div class="calibration-actions">
-        <button class="cancel-btn" id="btn-cancel-calibrate">取消</button>
-        <button class="done-btn" id="btn-done-calibrate">完成</button>
-      </div>
-    </div>
-    
-    <div id="map-picker-modal">
-      <div class="map-picker-header">
-        <span class="map-picker-title">点击地图选择坐标</span>
-        <button class="map-picker-close" id="btn-close-map-picker">关闭</button>
-      </div>
-      <div class="map-picker-container">
-        <div id="map-picker-cesium"></div>
-        <div class="map-picker-info" id="map-picker-info">
-          点击地图任意位置选择坐标
-        </div>
-        <button class="map-picker-select" id="btn-select-coord">确认选择</button>
-      </div>
-    </div>
-    
-    <!-- 视频控制面板 -->
-    <div id="video-control-panel">
-      <div class="video-control-title">视频控制</div>
+      async function reloadBuildings() {
+        if (!viewer) return;
+        
+        log('重新加载建筑...', 'info');
+        viewer.scene.primitives.removeAll();
+        await loadBuildings();
+      }
       
-      <div class="video-source-select">
-        <label class="video-source-label">视频来源</label>
-        <div class="video-source-buttons">
-          <button class="video-source-btn active" id="btn-source-camera">摄像头</button>
-          <button class="video-source-btn" id="btn-source-file">视频文件</button>
-        </div>
-      </div>
+      function toggleVideo() {
+        const videoContainer = document.getElementById('video-container');
+        isVideoVisible = !isVideoVisible;
+        videoContainer.style.display = isVideoVisible ? 'block' : 'none';
+        log(`摄像头 ${isVideoVisible ? '已显示' : '已隐藏'}`, 'info');
+        showStatus(isVideoVisible ? '摄像头已显示' : '摄像头已隐藏', 'info', 1500);
+      }
       
-      <div class="file-upload-container" id="file-upload-container" style="display: none;">
-        <label class="file-upload-label" for="video-file-input">选择视频文件</label>
-        <input type="file" id="video-file-input" accept="video/*">
-        <div class="video-file-info" id="video-file-info">未选择文件</div>
-      </div>
+      function toggleDebug() {
+        const debugPanel = document.getElementById('debug-panel');
+        debugVisible = !debugVisible;
+        debugPanel.style.display = debugVisible ? 'block' : 'none';
+        log(`调试面板 ${debugVisible ? '已显示' : '已隐藏'}`, 'info');
+      }
       
-      <div class="video-opacity-control">
-        <label class="control-label">视频透明度</label>
-        <div class="slider-container">
-          <input type="range" id="video-opacity-slider" class="opacity-slider" min="0" max="1" step="0.01" value="1">
-          <span class="opacity-value" id="video-opacity-value">1.00</span>
-        </div>
-      </div>
+      async function toggleCesium() {
+        if (cesiumEnabled) {
+          log('=== 禁用 Cesium 模式 ===', 'info');
+          cesiumEnabled = false;
+          
+          stopTransparencyMonitor();
+          
+          if (viewer && !viewer.isDestroyed()) {
+            viewer.destroy();
+            viewer = null;
+            log('Cesium 已销毁', 'info');
+          }
+          
+          const cesiumWrapper = document.getElementById('cesium-wrapper');
+          cesiumWrapper.style.display = 'none';
+          
+          const btnToggleCesium = document.getElementById('btn-toggle-cesium');
+          btnToggleCesium.textContent = '启用 Cesium';
+          btnToggleCesium.classList.remove('danger');
+          btnToggleCesium.classList.add('primary');
+          
+          log('=== 已禁用 Cesium，仅显示摄像头 ===', 'success');
+          showStatus('已禁用 Cesium，仅显示摄像头', 'success');
+        } else {
+          log('=== 启用 Cesium 模式 ===', 'info');
+          cesiumEnabled = true;
+          
+          const cesiumWrapper = document.getElementById('cesium-wrapper');
+          cesiumWrapper.style.display = 'block';
+          
+          const btnToggleCesium = document.getElementById('btn-toggle-cesium');
+          btnToggleCesium.textContent = '禁用 Cesium';
+          btnToggleCesium.classList.remove('primary');
+          btnToggleCesium.classList.add('danger');
+          
+          document.getElementById('loading-overlay').classList.remove('hidden');
+          
+          try {
+            await initCesium();
+            await loadBuildings();
+            hideLoading();
+            log('=== 已启用 Cesium ===', 'success');
+            showStatus('已启用 Cesium', 'success');
+          } catch (error) {
+            log(`启用 Cesium 失败: ${error.message}`, 'error');
+            hideLoading();
+            showStatus('启用 Cesium 失败', 'error');
+          }
+        }
+      }
       
-      <div class="video-playback-control" id="video-playback-control" style="display: none;">
-        <button class="playback-btn play" id="btn-video-play">播放</button>
-        <button class="playback-btn pause" id="btn-video-pause">暂停</button>
-      </div>
-    </div>
-    
-    <!-- GPS位置信息显示 -->
-    <div id="gps-info-panel">
-      <div class="gps-info-title">📍 GPS位置</div>
-      <div class="gps-info-content">
-        <div class="gps-info-row">
-          <span class="gps-info-label">纬度:</span>
-          <span class="gps-info-value" id="gps-latitude">--</span>
-        </div>
-        <div class="gps-info-row">
-          <span class="gps-info-label">经度:</span>
-          <span class="gps-info-value" id="gps-longitude">--</span>
-        </div>
-        <div class="gps-info-row">
-          <span class="gps-info-label">精度:</span>
-          <span class="gps-info-value" id="gps-accuracy">--</span>
-        </div>
-      </div>
-    </div>
-    
-    <div id="status-bar"></div>
-    
-    <script type="module" src="/src/main.js"></script>
+      function handleCameraError(error) {
+        log(`摄像头错误: ${error.name} - ${error.message}`, 'error');
+        
+        let title = '无法访问摄像头';
+        let message = '请检查您的设备是否有可用的摄像头，并确保浏览器有权限访问。';
+        
+        if (error.name === 'NotAllowedError' || error.message.includes('权限')) {
+          title = '摄像头权限被拒绝';
+          message = '请在浏览器设置中允许访问摄像头，然后刷新页面重试。';
+        } else if (error.name === 'NotFoundError') {
+          title = '未找到摄像头';
+          message = '您的设备似乎没有可用的摄像头，请连接摄像头后重试。';
+        } else if (error.name === 'NotReadableError') {
+          title = '摄像头被占用';
+          message = '摄像头可能正在被其他应用使用，请关闭其他应用后重试。';
+        } else if (error.message.includes('HTTPS')) {
+          title = '需要 HTTPS 连接';
+          message = error.message;
+        }
+        
+        showError(title, message);
+      }
+      
+      async function init() {
+        try {
+          log('=== 应用开始初始化 ===', 'info');
+          hideError();
+          
+          await startCamera();
+          
+          if (cesiumEnabled) {
+            await initCesium();
+            await loadBuildings();
+          }
+          
+          hideLoading();
+          showStatus('应用已就绪！', 'success', 3000);
+          log('=== 应用初始化完成 ===', 'success');
+          
+        } catch (error) {
+          log(`初始化失败: ${error.message}`, 'error');
+          stopCamera();
+          
+          if (error.message.includes('摄像头') || error.name) {
+            handleCameraError(error);
+          } else {
+            showError('初始化失败', error.message || '发生未知错误，请刷新页面重试。');
+          }
+        }
+      }
+      
+      document.getElementById('retry-button').addEventListener('click', () => {
+        hideError();
+        document.getElementById('loading-overlay').classList.remove('hidden');
+        cesiumEnabled = true;
+        const cesiumWrapper = document.getElementById('cesium-wrapper');
+        cesiumWrapper.style.display = 'block';
+        init();
+      });
+      
+      document.getElementById('btn-reload-cesium').addEventListener('click', reloadBuildings);
+      document.getElementById('btn-toggle-video').addEventListener('click', toggleVideo);
+      document.getElementById('btn-toggle-debug').addEventListener('click', toggleDebug);
+      document.getElementById('btn-toggle-cesium').addEventListener('click', toggleCesium);
+      
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          log('页面隐藏', 'info');
+        } else if (videoStream) {
+          log('页面显示', 'info');
+        }
+      });
+      
+      window.addEventListener('beforeunload', () => {
+        stopCamera();
+        stopTransparencyMonitor();
+        if (viewer && !viewer.isDestroyed()) {
+          viewer.destroy();
+        }
+      });
+      
+      log('应用加载完成，开始初始化...', 'info');
+      init();
+    </script>
   </body>
 </html>

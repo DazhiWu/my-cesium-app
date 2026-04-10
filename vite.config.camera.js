@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [cesium()],
   server: {
     allowedHosts: true,
-    port: 5174,
+    port: 5175,
     host: '0.0.0.0',
     cors: true
   }

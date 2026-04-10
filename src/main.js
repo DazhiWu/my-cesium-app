@@ -419,51 +419,89 @@ function initARButtonEvents() {
 
 async function startCamera() {
   const videoElement = document.getElementById('video-background');
-  if (!videoElement) return false;
+  if (!videoElement) {
+    console.error('找不到video-background元素');
+    throw new Error('找不到视频元素');
+  }
 
   try {
+    console.log('开始检查摄像头支持...');
+    
+    const isHttps = window.location.protocol === 'https:';
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if (!isHttps && !isLocalhost) {
+      throw new Error('需要HTTPS连接才能访问摄像头！请使用ngrok等工具');
+    }
+    
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error('浏览器不支持摄像头API');
     }
 
+    console.log('正在请求摄像头权限...');
+    
     const constraints = {
       video: {
         facingMode: 'environment',
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
+        width: { ideal: 1280, max: 1920, min: 640 },
+        height: { ideal: 720, max: 1080, min: 480 }
       },
       audio: false
     };
 
     videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+    console.log('摄像头权限获取成功，正在连接视频流...');
+    
     videoElement.srcObject = videoStream;
     
-    videoElement.onloadedmetadata = () => {
-      videoElement.play().catch(e => {
-        console.warn('自动播放失败:', e);
-      });
-    };
+    await new Promise((resolve, reject) => {
+      videoElement.onloadedmetadata = () => {
+        console.log('视频元数据加载完成');
+        resolve();
+      };
+      videoElement.onerror = (e) => {
+        console.error('视频元素加载错误:', e);
+        reject(new Error('视频元素加载失败'));
+      };
+      
+      setTimeout(() => {
+        reject(new Error('视频加载超时'));
+      }, 10000);
+    });
+    
+    try {
+      await videoElement.play();
+      console.log('视频播放成功');
+    } catch (playError) {
+      console.warn('自动播放失败，将等待用户交互:', playError);
+    }
     
     videoElement.style.display = 'block';
     videoElement.style.zIndex = '0';
+    videoElement.style.opacity = '1';
     
+    console.log('摄像头启动完成');
     return true;
   } catch (error) {
-    console.warn('无法获取摄像头:', error);
+    console.error('摄像头启动失败:', error);
+    
+    stopCamera();
     
     let errorMessage = '无法访问摄像头';
-    if (error.name === 'NotAllowedError') {
+    if (error.name === 'NotAllowedError' || error.message.includes('权限')) {
       errorMessage = '摄像头权限被拒绝，请在浏览器设置中允许访问';
     } else if (error.name === 'NotFoundError') {
       errorMessage = '未找到摄像头设备';
     } else if (error.name === 'NotReadableError') {
       errorMessage = '摄像头被其他应用占用';
     } else if (error.name === 'OverconstrainedError') {
-      errorMessage = '无法满足摄像头配置要求';
+      errorMessage = '无法满足摄像头配置要求，尝试降低分辨率';
     } else if (error.name === 'AbortError') {
       errorMessage = '摄像头访问被中断';
     } else if (error.name === 'TypeError') {
       errorMessage = '浏览器不支持摄像头API';
+    } else if (error.message.includes('HTTPS')) {
+      errorMessage = error.message;
     }
     
     throw new Error(errorMessage);
@@ -799,15 +837,13 @@ async function enterARMode() {
     if (videoSource === 'camera') {
       showLoading('正在请求摄像头权限...');
       try {
-        cameraStarted = await startCamera();
+        await startCamera();
+        cameraStarted = true;
       } catch (cameraError) {
-        console.warn('摄像头启动失败:', cameraError);
-        const isHttps = window.location.protocol === 'https:';
-        if (!isHttps) {
-          showStatus('⚠️ 需要HTTPS连接才能访问摄像头！请使用ngrok等工具提供HTTPS隧道', 'error');
-        } else {
-          showStatus('摄像头访问被拒绝，请检查浏览器权限设置', 'warning');
-        }
+        console.error('摄像头启动失败:', cameraError);
+        hideLoading();
+        showStatus(cameraError.message, 'error');
+        throw cameraError;
       }
     } else if (videoFileUrl) {
       loadVideoFile(videoFileUrl);
@@ -818,29 +854,16 @@ async function enterARMode() {
     
     const canvas = viewer.scene.canvas;
     canvas.style.backgroundColor = 'transparent';
-    
     viewer.scene.globe.baseColor = new Cesium.Color(0, 0, 0, 0);
     viewer.scene.globe.translucency.enabled = true;
     viewer.scene.globe.translucency.frontFaceAlpha = 0;
     viewer.scene.globe.translucency.backFaceAlpha = 0;
-    viewer.scene.globe.showGroundAtmosphere = false;
-    
-    viewer.scene.skyAtmosphere.show = false;
-    viewer.scene.skyBox.show = false;
-    viewer.scene.sun.show = false;
-    viewer.scene.moon.show = false;
     
     for (let i = 0; i < viewer.imageryLayers.length; i++) {
       viewer.imageryLayers.get(i).alpha = 0;
     }
     
     document.body.classList.add('ar-mode');
-    
-    const videoElement = document.getElementById('video-background');
-    if (videoElement) {
-      videoElement.style.display = 'block';
-      videoElement.style.zIndex = '1';
-    }
     
     calibrationLatitude = DEFAULT_AR_LATITUDE;
     calibrationLongitude = DEFAULT_AR_LONGITUDE;
@@ -917,20 +940,9 @@ function exitARMode() {
   canvas.style.backgroundColor = '';
   viewer.scene.globe.baseColor = new Cesium.Color(0.2, 0.3, 0.4, 1.0);
   viewer.scene.globe.translucency.enabled = false;
-  viewer.scene.globe.showGroundAtmosphere = true;
-  
-  viewer.scene.skyAtmosphere.show = true;
-  viewer.scene.skyBox.show = true;
-  viewer.scene.sun.show = true;
-  viewer.scene.moon.show = true;
   
   for (let i = 0; i < viewer.imageryLayers.length; i++) {
     viewer.imageryLayers.get(i).alpha = originalBasemapOpacity;
-  }
-  
-  const videoElement = document.getElementById('video-background');
-  if (videoElement) {
-    videoElement.style.display = 'none';
   }
   
   if (originalCameraPosition && originalCameraOrientation) {
@@ -1496,5 +1508,361 @@ async function initViewer() {
 
   return viewer;
 }
+
+// ==========================================
+// 独立摄像头测试功能模块
+// ==========================================
+let isCameraTestMode = false;
+let cameraTestStream = null;
+let originalViewerState = null;
+
+// 更新摄像头测试状态显示
+function updateCameraTestStatus(status, type = 'info', details = []) {
+  const statusPanel = document.getElementById('camera-test-status-panel');
+  const statusElement = document.getElementById('camera-test-status');
+  const detailsElement = document.getElementById('camera-test-details');
+  
+  if (!statusPanel || !statusElement) return;
+  
+  // 只在测试模式下显示状态面板
+  if (isCameraTestMode) {
+    statusPanel.style.display = 'block';
+  }
+  
+  // 更新面板状态类
+  statusPanel.className = '';
+  if (type === 'success') statusPanel.classList.add('success');
+  else if (type === 'error') statusPanel.classList.add('error');
+  else if (type === 'warning') statusPanel.classList.add('warning');
+  
+  // 更新状态文本
+  statusElement.textContent = status;
+  statusElement.className = 'camera-test-status';
+  if (type === 'success') statusElement.classList.add('success');
+  else if (type === 'error') statusElement.classList.add('error');
+  else if (type === 'warning') statusElement.classList.add('warning');
+  
+  // 更新详细信息
+  if (detailsElement) {
+    detailsElement.innerHTML = details.map(detail => 
+      `<div class="detail-item">${detail}</div>`
+    ).join('');
+  }
+  
+  console.log('[摄像头测试]', status, details);
+}
+
+// 保存原始Viewer状态
+function saveOriginalViewerState() {
+  if (!viewer) return;
+  
+  originalViewerState = {
+    imageryLayers: [],
+    cameraPosition: viewer.camera.position.clone(),
+    cameraOrientation: {
+      heading: viewer.camera.heading,
+      pitch: viewer.camera.pitch,
+      roll: viewer.camera.roll
+    },
+    globeBaseColor: viewer.scene.globe.baseColor.clone(),
+    globeTranslucencyEnabled: viewer.scene.globe.translucency.enabled,
+    globeFrontFaceAlpha: viewer.scene.globe.translucency.frontFaceAlpha,
+    globeBackFaceAlpha: viewer.scene.globe.translucency.backFaceAlpha
+  };
+  
+  // 保存影像图层透明度
+  for (let i = 0; i < viewer.imageryLayers.length; i++) {
+    originalViewerState.imageryLayers.push({
+      layer: viewer.imageryLayers.get(i),
+      alpha: viewer.imageryLayers.get(i).alpha
+    });
+  }
+  
+  console.log('[摄像头测试] 原始场景状态已保存');
+}
+
+// 清除Cesium场景所有内容
+function clearCesiumScene() {
+  if (!viewer) {
+    throw new Error('Viewer未初始化');
+  }
+  
+  updateCameraTestStatus('正在清除场景...', 'info', [
+    '隐藏所有实体',
+    '隐藏影像图层',
+    '设置地球透明'
+  ]);
+  
+  // 隐藏所有实体而不是移除（避免destroy错误）
+  viewer.entities.values.forEach(entity => {
+    entity.show = false;
+  });
+  
+  // 隐藏所有影像图层
+  for (let i = 0; i < viewer.imageryLayers.length; i++) {
+    viewer.imageryLayers.get(i).alpha = 0;
+  }
+  
+  // 设置地球透明
+  viewer.scene.globe.baseColor = new Cesium.Color(0, 0, 0, 0);
+  viewer.scene.globe.translucency.enabled = true;
+  viewer.scene.globe.translucency.frontFaceAlpha = 0;
+  viewer.scene.globe.translucency.backFaceAlpha = 0;
+  
+  // 设置canvas背景透明
+  const canvas = viewer.scene.canvas;
+  canvas.style.backgroundColor = 'transparent';
+  
+  updateCameraTestStatus('场景清除完成', 'success', [
+    '✓ 所有实体已隐藏',
+    '✓ 影像图层已隐藏',
+    '✓ 地球已设置为透明'
+  ]);
+}
+
+// 恢复原始Viewer状态
+function restoreOriginalViewerState() {
+  if (!viewer || !originalViewerState) return;
+  
+  updateCameraTestStatus('正在恢复场景...', 'info');
+  
+  // 重新显示所有实体
+  viewer.entities.values.forEach(entity => {
+    entity.show = true;
+  });
+  
+  // 恢复影像图层透明度
+  originalViewerState.imageryLayers.forEach(({ layer, alpha }) => {
+    layer.alpha = alpha;
+  });
+  
+  // 恢复地球设置
+  viewer.scene.globe.baseColor = originalViewerState.globeBaseColor;
+  viewer.scene.globe.translucency.enabled = originalViewerState.globeTranslucencyEnabled;
+  viewer.scene.globe.translucency.frontFaceAlpha = originalViewerState.globeFrontFaceAlpha;
+  viewer.scene.globe.translucency.backFaceAlpha = originalViewerState.globeBackFaceAlpha;
+  
+  // 恢复相机位置
+  viewer.camera.setView({
+    destination: originalViewerState.cameraPosition,
+    orientation: originalViewerState.cameraOrientation
+  });
+  
+  // 恢复canvas背景
+  const canvas = viewer.scene.canvas;
+  canvas.style.backgroundColor = '';
+  
+  updateCameraTestStatus('场景已恢复', 'success');
+}
+
+// 独立的摄像头启动功能（用于测试）
+async function startCameraTest() {
+  const videoElement = document.getElementById('video-background');
+  if (!videoElement) {
+    throw new Error('找不到video-background元素');
+  }
+  
+  updateCameraTestStatus('正在检查环境...', 'info', [
+    '检查HTTPS/localhost',
+    '检查摄像头API支持'
+  ]);
+  
+  // 检查环境
+  const isHttps = window.location.protocol === 'https:';
+  const isLocalhost = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+  
+  const envDetails = [];
+  envDetails.push(`协议: ${window.location.protocol}`);
+  envDetails.push(`主机: ${window.location.hostname}`);
+  
+  if (!isHttps && !isLocalhost) {
+    throw new Error('需要HTTPS或localhost才能访问摄像头！请使用ngrok等工具');
+  }
+  
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw new Error('浏览器不支持摄像头API');
+  }
+  
+  updateCameraTestStatus('正在请求摄像头权限...', 'warning', [
+    '请在弹出的对话框中点击"允许"',
+    '如果没有弹出，请检查浏览器权限设置'
+  ]);
+  
+  // 配置摄像头参数
+  const constraints = {
+    video: {
+      facingMode: 'environment',
+      width: { ideal: 1280, max: 1920, min: 640 },
+      height: { ideal: 720, max: 1080, min: 480 }
+    },
+    audio: false
+  };
+  
+  // 请求摄像头
+  cameraTestStream = await navigator.mediaDevices.getUserMedia(constraints);
+  
+  updateCameraTestStatus('权限获取成功！正在连接视频流...', 'success', [
+    '摄像头已授权',
+    '正在初始化视频流'
+  ]);
+  
+  // 连接视频流
+  videoElement.srcObject = cameraTestStream;
+  
+  // 等待视频加载
+  await new Promise((resolve, reject) => {
+    videoElement.onloadedmetadata = () => {
+      updateCameraTestStatus('视频流已连接！', 'success', [
+        `✓ 分辨率: ${videoElement.videoWidth}x${videoElement.videoHeight}`,
+        `✓ 帧率: ${videoElement.videoWidth > 0 ? '正常' : '检测中'}`
+      ]);
+      resolve();
+    };
+    
+    videoElement.onerror = () => {
+      reject(new Error('视频元素加载失败'));
+    };
+    
+    setTimeout(() => {
+      reject(new Error('视频加载超时'));
+    }, 10000);
+  });
+  
+  // 播放视频
+  try {
+    await videoElement.play();
+  } catch (e) {
+    console.warn('自动播放失败，但视频流已连接:', e);
+  }
+  
+  // 显示视频
+  videoElement.style.display = 'block';
+  videoElement.style.zIndex = '100';
+  videoElement.style.opacity = '1';
+  
+  updateCameraTestStatus('🎉 摄像头测试成功！', 'success', [
+    '✓ 视频画面正常显示',
+    '✓ 点击"返回主界面"可退出'
+  ]);
+}
+
+// 停止摄像头测试
+function stopCameraTest() {
+  const videoElement = document.getElementById('video-background');
+  
+  // 停止视频流
+  if (cameraTestStream) {
+    cameraTestStream.getTracks().forEach(track => track.stop());
+    cameraTestStream = null;
+  }
+  
+  // 清理视频元素
+  if (videoElement) {
+    videoElement.pause();
+    videoElement.srcObject = null;
+    videoElement.style.display = 'none';
+  }
+}
+
+// 进入摄像头测试模式
+async function enterCameraTestMode() {
+  if (isCameraTestMode) return;
+  
+  try {
+    isCameraTestMode = true;
+    document.body.classList.add('camera-test-mode');
+    document.getElementById('btn-test-camera').classList.add('active');
+    
+    // 显示状态面板
+    const statusPanel = document.getElementById('camera-test-status-panel');
+    if (statusPanel) {
+      statusPanel.style.display = 'block';
+    }
+    
+    updateCameraTestStatus('正在启动摄像头测试...', 'info', [
+      '步骤1/5: 保存原始场景',
+      '步骤2/5: 清除Cesium场景',
+      '步骤3/5: 初始化摄像头',
+      '步骤4/5: 显示视频画面',
+      '步骤5/5: 验证功能'
+    ]);
+    
+    // 1. 保存原始状态
+    saveOriginalViewerState();
+    
+    // 2. 清除场景
+    clearCesiumScene();
+    
+    // 3. 启动摄像头
+    await startCameraTest();
+    
+    // 显示退出按钮
+    document.getElementById('camera-test-exit-btn').style.display = 'block';
+    
+  } catch (error) {
+    console.error('[摄像头测试] 失败:', error);
+    
+    updateCameraTestStatus('❌ 测试失败', 'error', [
+      `错误: ${error.message}`,
+      '',
+      '可能原因:',
+      '• 未使用HTTPS/localhost',
+      '• 摄像头权限被拒绝',
+      '• 摄像头被其他应用占用',
+      '• 设备不支持'
+    ]);
+    
+    // 发生错误时退出测试模式
+    exitCameraTestMode();
+  }
+}
+
+// 退出摄像头测试模式
+function exitCameraTestMode() {
+  if (!isCameraTestMode) return;
+  
+  updateCameraTestStatus('正在退出测试模式...', 'info');
+  
+  // 停止摄像头
+  stopCameraTest();
+  
+  // 恢复场景
+  restoreOriginalViewerState();
+  
+  // 清理状态
+  isCameraTestMode = false;
+  document.body.classList.remove('camera-test-mode');
+  document.getElementById('btn-test-camera').classList.remove('active');
+  document.getElementById('camera-test-exit-btn').style.display = 'none';
+  
+  // 隐藏状态面板
+  const statusPanel = document.getElementById('camera-test-status-panel');
+  if (statusPanel) {
+    statusPanel.style.display = 'none';
+  }
+}
+
+// 初始化摄像头测试模块
+function initCameraTestModule() {
+  const testBtn = document.getElementById('btn-test-camera');
+  const exitBtn = document.getElementById('btn-exit-camera-test');
+  
+  if (testBtn) {
+    testBtn.addEventListener('click', enterCameraTestMode);
+  }
+  
+  if (exitBtn) {
+    exitBtn.addEventListener('click', exitCameraTestMode);
+  }
+  
+  console.log('[摄像头测试] 模块初始化完成');
+}
+
+// 页面加载完成后初始化摄像头测试模块
+document.addEventListener('DOMContentLoaded', () => {
+  // 延迟初始化，确保Viewer已就绪
+  setTimeout(initCameraTestModule, 1000);
+});
 
 initViewer();
